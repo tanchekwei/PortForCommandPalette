@@ -1,0 +1,11 @@
+{
+  "profiles": {
+    "PortForCommandPalette (Package)": {
+      "commandName": "MsixPackage",
+      "doNotLaunchApp": true
+    },
+    "PortForCommandPalette (Unpackaged)": {
+      "commandName": "Project"
+    }
+  }
+}
