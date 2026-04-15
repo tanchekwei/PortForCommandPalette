@@ -2,7 +2,6 @@
 // Licensed under the MIT License. See the LICENSE file in the project root for details.
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.CmdPal.Ext.Indexer.Indexer;
@@ -37,7 +36,6 @@ public sealed partial class PortsPage : DynamicListPage, INotifyItemsChanged, ID
     private readonly SemaphoreSlim _refreshSemaphore = new(1, 1);
     private bool _isDisposed;
 
-    private CancellationTokenSource _cancellationTokenSource = new();
     private CancellationTokenSource? _pollingCts;
     private int _subscriberCount;
     private int _remainingPollingDelay;
@@ -129,20 +127,7 @@ public sealed partial class PortsPage : DynamicListPage, INotifyItemsChanged, ID
 
     private void UpdateUIStrings()
     {
-        var enabledFields = new List<string>();
-        if (_settingsManager.SearchProcessName) enabledFields.Add("process");
-        if (_settingsManager.SearchLocalAddress || _settingsManager.SearchRemoteAddress) enabledFields.Add("address");
-        if (_settingsManager.SearchLocalPort || _settingsManager.SearchRemotePort) enabledFields.Add("port");
-
-        if (enabledFields.Count > 0)
-        {
-            PlaceholderText = $"Search {string.Join(", ", enabledFields)}...";
-        }
-        else
-        {
-            PlaceholderText = "Search disabled (enable in settings)";
-        }
-
+        PlaceholderText = PortFilter.GetSearchPlaceholder(_settingsManager);
         EmptyContent = new CommandItem(new NoOpCommand())
         {
             Icon = Icon,
@@ -197,35 +182,28 @@ public sealed partial class PortsPage : DynamicListPage, INotifyItemsChanged, ID
         {
             var currentCount = _visibleItems.Count;
             var itemsToLoadCount = Math.Min(_cachedFilteredPorts.Count - currentCount, _settingsManager.PageSize);
-            var nextBatch = new List<PortInfo>(itemsToLoadCount);
-            for (int i = 0; i < itemsToLoadCount; i++)
-            {
-                nextBatch.Add(_cachedFilteredPorts[currentCount + i]);
-            }
+            var nextBatch = _cachedFilteredPorts.GetRange(currentCount, itemsToLoadCount);
 
-            // Resolve full info on demand for the next batch being shown
             _portService.ResolveProcessInfo(nextBatch);
 
-            for (var i = 0; i < itemsToLoadCount; i++)
+            foreach (var port in nextBatch)
             {
-                var port = nextBatch[i];
                 _visibleItems.Add(GetOrCreateListItem(port));
             }
 
             HasMoreItems = _visibleItems.Count < _cachedFilteredPorts.Count;
         }
-
         RaiseItemsChanged(_visibleItems.Count);
     }
 
-    public ListItem GetOrCreateListItem(PortInfo workspace, bool isTopLevelCommand = false)
+    public ListItem GetOrCreateListItem(PortInfo port, bool isTopLevelCommand = false)
     {
         lock (_itemsLock)
         {
-            if (!_listItemCache.TryGetValue(workspace.Id, out var listItem))
+            if (!_listItemCache.TryGetValue(port.Id, out var listItem))
             {
-                listItem = PortItemFactory.Create(workspace, _refreshCommandContextItem, _settingsManager);
-                _listItemCache[workspace.Id] = listItem;
+                listItem = PortItemFactory.Create(port, _refreshCommandContextItem, _settingsManager);
+                _listItemCache[port.Id] = listItem;
             }
 
             if (isTopLevelCommand)
@@ -275,8 +253,7 @@ public sealed partial class PortsPage : DynamicListPage, INotifyItemsChanged, ID
             }
 
             var filterId = Filters?.CurrentFilterId ?? string.Empty;
-            var filterType = FilterType.All;
-            _ = Enum.TryParse(filterId, out filterType);
+            _ = Enum.TryParse(filterId, out FilterType filterType);
 
             var ports = await Task.Run(() => _portService.GetPorts(filterType));
 
@@ -286,34 +263,23 @@ public sealed partial class PortsPage : DynamicListPage, INotifyItemsChanged, ID
                 _allPortsById.Clear();
 
                 var activeIds = new HashSet<string>();
-                for (int i = 0; i < ports.Count; i++)
+                foreach (var port in ports)
                 {
-                    var port = ports[i];
                     _allPorts.Add(port);
                     _allPortsById[port.Id] = port;
                     activeIds.Add(port.Id);
                 }
 
-                // Prune old items from the cache that are no longer present
                 var keysToRemove = new List<string>();
                 foreach (var key in _listItemCache.Keys)
                 {
-                    if (!activeIds.Contains(key))
-                    {
-                        keysToRemove.Add(key);
-                    }
+                    if (!activeIds.Contains(key)) keysToRemove.Add(key);
                 }
-                for (int i = 0; i < keysToRemove.Count; i++)
-                {
-                    _listItemCache.Remove(keysToRemove[i]);
-                }
+                foreach (var key in keysToRemove) _listItemCache.Remove(key);
             }
 
             FilterAndRefreshVisibleItems();
-            if (isUserInitiated)
-            {
-                new ToastStatusMessage($"Refreshed {ports.Count} items").Show();
-            }
+            if (isUserInitiated) new ToastStatusMessage($"Refreshed {ports.Count} items").Show();
         }
         finally
         {
@@ -423,8 +389,6 @@ public sealed partial class PortsPage : DynamicListPage, INotifyItemsChanged, ID
 
         _pollingCts?.Cancel();
         _pollingCts?.Dispose();
-        _cancellationTokenSource.Cancel();
-        _cancellationTokenSource.Dispose();
         _settingsListener.PageSettingsChanged -= OnPageSettingsChanged;
         _settingsListener.SortSettingsChanged -= OnSortSettingsChanged;
         _settingsListener.PollingIntervalChanged -= OnPollingIntervalChanged;
@@ -435,116 +399,25 @@ public sealed partial class PortsPage : DynamicListPage, INotifyItemsChanged, ID
     {
         lock (_itemsLock)
         {
-            var isSearching = !string.IsNullOrWhiteSpace(SearchText);
-
-            // If user is searching, we MUST resolve names for all ports to perform the filter
-            if (isSearching)
-            {
-                _portService.ResolveProcessNames(_allPorts);
-            }
-
             var filterId = Filters?.CurrentFilterId ?? string.Empty;
-            var filterType = FilterType.All;
-            var hasFilter = !string.IsNullOrWhiteSpace(filterId) && Enum.TryParse(filterId, out filterType) && filterType != FilterType.All;
+            _ = Enum.TryParse(filterId, out FilterType filterType);
 
-            var filteredResult = new List<PortInfo>();
-
-            if (isSearching)
-            {
-                var matchedItems = new List<(PortInfo item, int score)>();
-                for (int i = 0; i < _allPorts.Count; i++)
-                {
-                    var item = _allPorts[i];
-                    if (hasFilter && !PortFilter.MatchesFilter(item, filterType))
-                    {
-                        continue;
-                    }
-
-                    var score = PortFilter.CalculateSearchScore(item, SearchText, _settingsManager);
-
-                    if (score > 0)
-                    {
-                        matchedItems.Add((item, score));
-                    }
-                }
-
-                matchedItems.Sort((a, b) => b.score.CompareTo(a.score));
-                for (int i = 0; i < matchedItems.Count; i++)
-                {
-                    filteredResult.Add(matchedItems[i].item);
-                }
-            }
-            else
-            {
-                for (int i = 0; i < _allPorts.Count; i++)
-                {
-                    var item = _allPorts[i];
-                    if (hasFilter && !PortFilter.MatchesFilter(item, filterType))
-                    {
-                        continue;
-                    }
-                    filteredResult.Add(item);
-                }
-
-                if (_settingsManager.SortBy == SortBy.ProcessName)
-                {
-                    _portService.ResolveProcessNames(filteredResult);
-                    filteredResult.Sort((a, b) =>
-                    {
-                        int res = string.Compare(a.ProcessName, b.ProcessName, StringComparison.OrdinalIgnoreCase);
-                        if (res == 0)
-                        {
-                            res = a.LocalPort.CompareTo(b.LocalPort);
-                        }
-                        return res;
-                    });
-                }
-                else if (_settingsManager.SortBy == SortBy.Protocol)
-                {
-                    filteredResult.Sort((a, b) =>
-                    {
-                        int res = string.Compare(a.Protocol, b.Protocol, StringComparison.OrdinalIgnoreCase);
-                        if (res == 0)
-                        {
-                            res = a.LocalPort.CompareTo(b.LocalPort);
-                        }
-                        return res;
-                    });
-                }
-                else if (_settingsManager.SortBy == SortBy.State)
-                {
-                    filteredResult.Sort((a, b) =>
-                    {
-                        int res = string.Compare(a.State, b.State, StringComparison.OrdinalIgnoreCase);
-                        if (res == 0)
-                        {
-                            res = a.LocalPort.CompareTo(b.LocalPort);
-                        }
-                        return res;
-                    });
-                }
-                else // SortBy.LocalPort
-                {
-                    filteredResult.Sort((a, b) => a.LocalPort.CompareTo(b.LocalPort));
-                }
-            }
-
-            _cachedFilteredPorts = filteredResult;
+            _cachedFilteredPorts = PortFilter.ApplyFilterAndSort(
+                _allPorts,
+                SearchText,
+                filterType,
+                _settingsManager,
+                ports => _portService.ResolveProcessNames(ports));
 
             _visibleItems.Clear();
             var visibleBatchCount = Math.Min(_cachedFilteredPorts.Count, _settingsManager.PageSize);
-            var visibleBatch = new List<PortInfo>(visibleBatchCount);
-            for (int i = 0; i < visibleBatchCount; i++)
-            {
-                visibleBatch.Add(_cachedFilteredPorts[i]);
-            }
+            var visibleBatch = _cachedFilteredPorts.GetRange(0, visibleBatchCount);
 
-            // Resolve full info (names + paths) ONLY for what we are about to display
             _portService.ResolveProcessInfo(visibleBatch);
 
-            for (int i = 0; i < visibleBatch.Count; i++)
+            foreach (var port in visibleBatch)
             {
-                _visibleItems.Add(GetOrCreateListItem(visibleBatch[i]));
+                _visibleItems.Add(GetOrCreateListItem(port));
             }
 
             HasMoreItems = _cachedFilteredPorts.Count > _visibleItems.Count;
