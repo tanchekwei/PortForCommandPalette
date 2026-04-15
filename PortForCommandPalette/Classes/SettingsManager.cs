@@ -62,6 +62,12 @@ public class SettingsManager : JsonSettingsManager
         "Determines how items are sorted when no search text is entered.",
         _sortByChoices);
 
+    private readonly ToggleSetting _showDetails = new(
+        Namespaced(nameof(ShowDetails)),
+        "Show Details",
+        "Show the details pane for selected items.",
+        true);
+
     private readonly ToggleSetting _searchProcessName = new(
         Namespaced(nameof(SearchProcessName)),
         "Search Process Name",
@@ -130,6 +136,7 @@ public class SettingsManager : JsonSettingsManager
         }
     }
 
+    public bool ShowDetails => _showDetails.Value;
     public bool SearchProcessName => _searchProcessName.Value;
     public bool SearchLocalAddress => _searchLocalAddress.Value;
     public bool SearchLocalPort => _searchLocalPort.Value;
@@ -160,6 +167,7 @@ public class SettingsManager : JsonSettingsManager
             Settings.Add(_pageSize);
             Settings.Add(_pollingIntervalMilliseconds);
             Settings.Add(_sortBy);
+            Settings.Add(_showDetails);
             Settings.Add(_searchProcessName);
             Settings.Add(_searchLocalAddress);
             Settings.Add(_searchLocalPort);

@@ -99,6 +99,7 @@ public sealed partial class PortsPage : DynamicListPage, INotifyItemsChanged, ID
         Name = Constant.PageName;
         Icon = Classes.Icon.Extension;
         Id = $"{Package.Current.Id.Name}.{nameof(PortsPage)}";
+        ShowDetails = _settingsManager.ShowDetails;
 
         UpdateUIStrings();
 
@@ -355,6 +356,7 @@ public sealed partial class PortsPage : DynamicListPage, INotifyItemsChanged, ID
 #if DEBUG
         using var logger = new TimeLogger();
 #endif
+        ShowDetails = _settingsManager.ShowDetails;
         UpdateUIStrings();
         UpdateSearchText(string.Empty, SearchText);
     }
