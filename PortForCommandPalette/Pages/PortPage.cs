@@ -460,42 +460,11 @@ public sealed partial class PortsPage : DynamicListPage, INotifyItemsChanged, ID
                         continue;
                     }
 
-                    int bestScore = 0;
-                    if (_settingsManager.SearchProcessName)
-                    {
-                        var score = FuzzyStringMatcher.ScoreFuzzy(SearchText, item.ProcessName ?? string.Empty);
-                        bestScore = Math.Max(bestScore, score);
-                    }
+                    var score = PortFilter.CalculateSearchScore(item, SearchText, _settingsManager);
 
-                    if (_settingsManager.SearchLocalAddress)
+                    if (score > 0)
                     {
-                        bestScore = Math.Max(bestScore, ScoreSubstring(item.LocalAddress, SearchText));
-                    }
-                    if (_settingsManager.SearchLocalPort)
-                    {
-                        bestScore = Math.Max(bestScore, ScoreSubstring(item.LocalPort.ToString(CultureInfo.InvariantCulture), SearchText));
-                    }
-                    if (_settingsManager.SearchLocalAddress && _settingsManager.SearchLocalPort)
-                    {
-                        bestScore = Math.Max(bestScore, ScoreSubstring(item.LocalAddressDisplay, SearchText));
-                    }
-
-                    if (_settingsManager.SearchRemoteAddress)
-                    {
-                        bestScore = Math.Max(bestScore, ScoreSubstring(item.RemoteAddress, SearchText));
-                    }
-                    if (_settingsManager.SearchRemotePort)
-                    {
-                        bestScore = Math.Max(bestScore, ScoreSubstring(item.RemotePort.ToString(CultureInfo.InvariantCulture), SearchText));
-                    }
-                    if (_settingsManager.SearchRemoteAddress && _settingsManager.SearchRemotePort)
-                    {
-                        bestScore = Math.Max(bestScore, ScoreSubstring(item.RemoteAddressDisplay, SearchText));
-                    }
-
-                    if (bestScore > 0)
-                    {
-                        matchedItems.Add((item, bestScore));
+                        matchedItems.Add((item, score));
                     }
                 }
 
@@ -582,14 +551,5 @@ public sealed partial class PortsPage : DynamicListPage, INotifyItemsChanged, ID
         }
 
         RaiseItemsChanged(_visibleItems.Count);
-    }
-
-    private static int ScoreSubstring(string text, string query)
-    {
-        if (string.IsNullOrEmpty(query) || string.IsNullOrEmpty(text)) return 0;
-        if (text.Equals(query, StringComparison.OrdinalIgnoreCase)) return 100;
-        if (text.StartsWith(query, StringComparison.OrdinalIgnoreCase)) return 95;
-        if (text.Contains(query, StringComparison.OrdinalIgnoreCase)) return 80;
-        return 0;
     }
 }
