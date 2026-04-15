@@ -66,7 +66,7 @@ public class SettingsManager : JsonSettingsManager
         Namespaced(nameof(ShowDetails)),
         "Show Details",
         "Show the details pane for selected items.",
-        true);
+        false);
 
     private readonly ToggleSetting _searchProcessName = new(
         Namespaced(nameof(SearchProcessName)),
