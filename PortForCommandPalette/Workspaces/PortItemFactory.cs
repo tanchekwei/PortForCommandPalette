@@ -86,6 +86,11 @@ public static class PortItemFactory
 
     private static IconInfo? GetIconForProcess(string path)
     {
+        if (string.IsNullOrEmpty(path))
+        {
+            return Icon.Shield;
+        }
+
         return IconExtractor.GetIconForPath(path);
     }
 

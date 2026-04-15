@@ -22,4 +22,5 @@ public static class Icon
     public static readonly IconInfo Established = new("\uE71B");
     public static readonly IconInfo TimeWait = new("\uE814");
     public static readonly IconInfo CloseWait = new("\uE711");
+    public static readonly IconInfo Shield = new("\uE7EF");
 }
