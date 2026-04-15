@@ -13,6 +13,8 @@ namespace PortForCommandPalette.Listeners
         private SortBy _previousSortBy;
         private int _previousPollingInterval;
         private bool _previousShowDetails;
+        private bool _previousShowProtocolTag;
+        private bool _previousShowStateTag;
         private bool _previousSearchProcessName;
         private bool _previousSearchLocalAddress;
         private bool _previousSearchLocalPort;
@@ -31,6 +33,8 @@ namespace PortForCommandPalette.Listeners
                 _previousSortBy = _settingsManager.SortBy;
                 _previousPollingInterval = _settingsManager.PollingIntervalMilliseconds;
                 _previousShowDetails = _settingsManager.ShowDetails;
+                _previousShowProtocolTag = _settingsManager.ShowProtocolTag;
+                _previousShowStateTag = _settingsManager.ShowStateTag;
                 _previousSearchProcessName = _settingsManager.SearchProcessName;
                 _previousSearchLocalAddress = _settingsManager.SearchLocalAddress;
                 _previousSearchLocalPort = _settingsManager.SearchLocalPort;
@@ -68,6 +72,8 @@ namespace PortForCommandPalette.Listeners
                 }
 
                 var currentShowDetails = _settingsManager.ShowDetails;
+                var currentShowProtocolTag = _settingsManager.ShowProtocolTag;
+                var currentShowStateTag = _settingsManager.ShowStateTag;
                 var currentSearchProcessName = _settingsManager.SearchProcessName;
                 var currentSearchLocalAddress = _settingsManager.SearchLocalAddress;
                 var currentSearchLocalPort = _settingsManager.SearchLocalPort;
@@ -75,6 +81,8 @@ namespace PortForCommandPalette.Listeners
                 var currentSearchRemotePort = _settingsManager.SearchRemotePort;
 
                 if (currentShowDetails != _previousShowDetails ||
+                    currentShowProtocolTag != _previousShowProtocolTag ||
+                    currentShowStateTag != _previousShowStateTag ||
                     currentSearchProcessName != _previousSearchProcessName ||
                     currentSearchLocalAddress != _previousSearchLocalAddress ||
                     currentSearchLocalPort != _previousSearchLocalPort ||
@@ -83,6 +91,8 @@ namespace PortForCommandPalette.Listeners
                 {
                     PageSettingsChanged?.Invoke(this, EventArgs.Empty);
                     _previousShowDetails = currentShowDetails;
+                    _previousShowProtocolTag = currentShowProtocolTag;
+                    _previousShowStateTag = currentShowStateTag;
                     _previousSearchProcessName = currentSearchProcessName;
                     _previousSearchLocalAddress = currentSearchLocalAddress;
                     _previousSearchLocalPort = currentSearchLocalPort;

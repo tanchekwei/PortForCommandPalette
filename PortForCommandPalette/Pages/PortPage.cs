@@ -322,6 +322,10 @@ public sealed partial class PortsPage : DynamicListPage, INotifyItemsChanged, ID
 #if DEBUG
         using var logger = new TimeLogger();
 #endif
+        lock (_itemsLock)
+        {
+            _listItemCache.Clear();
+        }
         ShowDetails = _settingsManager.ShowDetails;
         UpdateUIStrings();
         UpdateSearchText(string.Empty, SearchText);

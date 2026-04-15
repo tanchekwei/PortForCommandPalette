@@ -68,6 +68,18 @@ public class SettingsManager : JsonSettingsManager
         "Show the details pane for selected items.",
         false);
 
+    private readonly ToggleSetting _showProtocolTag = new(
+        Namespaced(nameof(ShowProtocolTag)),
+        "Show Protocol Tag",
+        "Show the protocol (TCP/UDP) tag in the list item.",
+        true);
+
+    private readonly ToggleSetting _showStateTag = new(
+        Namespaced(nameof(ShowStateTag)),
+        "Show State Tag",
+        "Show the connection state tag in the list item.",
+        true);
+
     private readonly ToggleSetting _searchProcessName = new(
         Namespaced(nameof(SearchProcessName)),
         "Search Process Name",
@@ -137,6 +149,8 @@ public class SettingsManager : JsonSettingsManager
     }
 
     public bool ShowDetails => _showDetails.Value;
+    public bool ShowProtocolTag => _showProtocolTag.Value;
+    public bool ShowStateTag => _showStateTag.Value;
     public bool SearchProcessName => _searchProcessName.Value;
     public bool SearchLocalAddress => _searchLocalAddress.Value;
     public bool SearchLocalPort => _searchLocalPort.Value;
@@ -168,6 +182,8 @@ public class SettingsManager : JsonSettingsManager
             Settings.Add(_pollingIntervalMilliseconds);
             Settings.Add(_sortBy);
             Settings.Add(_showDetails);
+            Settings.Add(_showProtocolTag);
+            Settings.Add(_showStateTag);
             Settings.Add(_searchProcessName);
             Settings.Add(_searchLocalAddress);
             Settings.Add(_searchLocalPort);

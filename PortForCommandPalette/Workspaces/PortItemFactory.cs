@@ -18,7 +18,7 @@ public static class PortItemFactory
     {
         try
         {
-            var tags = BuildTags(port);
+            var tags = BuildTags(port, settingsManager);
             var processIcon = GetIconForProcess(port.ProcessPath);
             var details = new Details()
             {
@@ -74,10 +74,15 @@ public static class PortItemFactory
         }
     }
 
-    private static List<Tag> BuildTags(PortInfo port)
+    private static List<Tag> BuildTags(PortInfo port, SettingsManager settingsManager)
     {
-        List<Tag> tags = [new Tag(port.Protocol)];
-        if (!string.IsNullOrWhiteSpace(port.State))
+        List<Tag> tags = [];
+        if (settingsManager.ShowProtocolTag)
+        {
+            tags.Add(new Tag(port.Protocol));
+        }
+
+        if (settingsManager.ShowStateTag && !string.IsNullOrWhiteSpace(port.State))
         {
             tags.Add(new Tag(port.State));
         }
