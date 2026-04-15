@@ -15,4 +15,5 @@ public class PortInfo
 
     public string LocalAddressDisplay => $"{LocalAddress}:{LocalPort}";
     public string RemoteAddressDisplay => string.IsNullOrEmpty(RemoteAddress) ? "*:*" : $"{RemoteAddress}:{RemotePort}";
+    public string ProcessPathDisplay => string.IsNullOrEmpty(ProcessPath) ? "Access denied (elevated process)" : ProcessPath;
 }

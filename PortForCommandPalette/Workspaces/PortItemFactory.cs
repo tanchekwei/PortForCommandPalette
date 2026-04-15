@@ -27,7 +27,7 @@ public static class PortItemFactory
                 Metadata = [
                     new DetailsElement() { Key = "Tags", Data = new DetailsTags() { Tags = [.. tags] } },
                     new DetailsElement() { Key = "Process", Data = new DetailsLink() { Text = port.ProcessName } },
-                    new DetailsElement() { Key = "Process Path", Data = new DetailsLink() { Text = port.ProcessPath } },
+                    new DetailsElement() { Key = "Process Path", Data = new DetailsLink() { Text = port.ProcessPathDisplay } },
                     new DetailsElement() { Key = "PID", Data = new DetailsLink() { Text = port.ProcessId.ToString(CultureInfo.InvariantCulture) } },
                     new DetailsElement() { Key = "Protocol", Data = new DetailsLink() { Text = port.Protocol } },
                     new DetailsElement() { Key = "Local Address", Data = new DetailsLink() { Text = port.LocalAddressDisplay } },
