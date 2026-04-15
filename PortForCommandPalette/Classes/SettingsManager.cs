@@ -53,7 +53,7 @@ public class SettingsManager : JsonSettingsManager
     private readonly TextSetting _pollingIntervalMilliseconds = new(
         Namespaced(nameof(PollingIntervalMilliseconds)),
         "Polling Interval",
-        "Interval in milliseconds for port status updates while the page is visible.\nPolling stops when the page is unloaded / hidden / unfocus.",
+        "Interval in milliseconds for port status updates while the page is visible (0 to disable).\nPolling stops when the page is unloaded / hidden / unfocus.",
         "1000");
 
     private readonly ChoiceSetSetting _sortBy = new(

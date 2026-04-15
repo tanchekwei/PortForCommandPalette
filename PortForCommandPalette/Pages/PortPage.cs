@@ -56,7 +56,7 @@ public sealed partial class PortsPage : DynamicListPage, INotifyItemsChanged, ID
             {
                 ItemsChanged += value;
                 _subscriberCount++;
-                if (_subscriberCount == 1)
+                if (_subscriberCount == 1 && _settingsManager.PollingIntervalMilliseconds > 0)
                 {
                     _pollingCts?.Cancel();
                     _pollingCts = new CancellationTokenSource();
@@ -372,6 +372,25 @@ public sealed partial class PortsPage : DynamicListPage, INotifyItemsChanged, ID
     private void OnPollingIntervalChanged(object? sender, EventArgs e)
     {
         UpdateRemainingPollingDelay();
+        lock (_itemsLock)
+        {
+            if (_subscriberCount > 0)
+            {
+                if (_settingsManager.PollingIntervalMilliseconds > 0)
+                {
+                    if (_pollingCts == null)
+                    {
+                        _pollingCts = new CancellationTokenSource();
+                        _ = PollAsync(_pollingCts.Token);
+                    }
+                }
+                else
+                {
+                    _pollingCts?.Cancel();
+                    _pollingCts = null;
+                }
+            }
+        }
     }
 
     private void UpdateRemainingPollingDelay()
