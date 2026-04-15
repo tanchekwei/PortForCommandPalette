@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Net;
 using System.Runtime.InteropServices;
+using System.Text;
 using PortForCommandPalette.Classes;
 using PortForCommandPalette.Enums;
 using PortForCommandPalette.Helpers;
@@ -125,31 +126,46 @@ public class PortService
                 continue;
             }
 
+            path = GetProcessPath(port.ProcessId);
+            port.ProcessPath = path;
+
+            lock (_cacheLock)
+            {
+                _globalProcessCache[port.ProcessId] = (port.ProcessName, port.ProcessPath);
+            }
+        }
+    }
+
+    private string GetProcessPath(int pid)
+    {
+        IntPtr hProcess = NativeMethods.OpenProcess(NativeMethods.PROCESS_QUERY_LIMITED_INFORMATION, false, pid);
+        if (hProcess != IntPtr.Zero)
+        {
             try
             {
-                using var process = Process.GetProcessById(port.ProcessId);
-                try
+                var buffer = new StringBuilder(260);
+                int size = buffer.Capacity;
+                if (NativeMethods.QueryFullProcessImageName(hProcess, 0, buffer, ref size))
                 {
-                    path = process.MainModule?.FileName ?? string.Empty;
-                }
-                catch
-                {
-                    path = string.Empty;
-                }
-
-                port.ProcessPath = path ?? string.Empty;
-                lock (_cacheLock)
-                {
-                    _globalProcessCache[port.ProcessId] = (port.ProcessName, port.ProcessPath);
+                    return buffer.ToString();
                 }
             }
-            catch
+            finally
             {
-                lock (_cacheLock)
-                {
-                    _globalProcessCache[port.ProcessId] = (port.ProcessName, string.Empty);
-                }
+                NativeMethods.CloseHandle(hProcess);
             }
+        }
+
+        // Fallback to older method if QueryFullProcessImageName fails or for compatibility, 
+        // though limited information should usually work.
+        try
+        {
+            using var process = Process.GetProcessById(pid);
+            return process.MainModule?.FileName ?? string.Empty;
+        }
+        catch
+        {
+            return string.Empty;
         }
     }
 
