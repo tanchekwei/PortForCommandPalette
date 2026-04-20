@@ -6,6 +6,7 @@ using Microsoft.CommandPalette.Extensions.Toolkit;
 using PortForCommandPalette.Classes;
 using PortForCommandPalette.Commands;
 using PortForCommandPalette.Listeners;
+using PortForCommandPalette.Pages;
 using Windows.ApplicationModel;
 
 namespace PortForCommandPalette;
@@ -37,7 +38,7 @@ public partial class PortForCommandPaletteCommandsProvider : CommandProvider
 
             _page = page;
 
-            _fallbacks = [];
+            _fallbacks = [new FallbackPortItem(_page)];
         }
         catch (Exception ex)
         {
