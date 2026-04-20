@@ -47,7 +47,7 @@ For more detailed technical information about the project's architecture and com
 
 ## Changelog
 
-### 1.0.0.0
+### 1.1.0.0
 - **Search**: Implemented hybrid search (fuzzy for names, substring for addresses/ports) for better accuracy.
 - **Settings**: Added toggles to enable/disable searching on specific fields (Process Name, Ports, Addresses).
 - **Performance**: Added intelligent polling that starts/stops based on page visibility.
