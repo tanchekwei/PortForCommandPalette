@@ -32,7 +32,7 @@ jobs:
           # Publish to Winget
           $wingetPackage = "15722UsefulApp.PortForCommandPalette"
           Invoke-WebRequest -Uri https://aka.ms/wingetcreate/latest -OutFile wingetcreate.exe
-          cd .\PortForCommandPalette\winget-pkg
+          cd .\winget-pkg
           Get-ChildItem *.* -Recurse | ForEach-Object { 
             (Get-Content $_.FullName) -replace '__VERSION__', "$ver" `
                                      -replace '__URL__', "$exe" `
