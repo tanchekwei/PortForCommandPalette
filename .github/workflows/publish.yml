@@ -42,4 +42,4 @@ jobs:
             Set-Content $_.FullName 
           }
           echo "Publishing to winget..."
-          .\wingetcreate.exe submit -p "New version: $wingetPackage version $ver" -t ${{ secrets.WINGETCREATE_GITHUB }} .
+          ..\wingetcreate.exe submit -p "New version: $wingetPackage version $ver" -t ${{ secrets.WINGETCREATE_GITHUB }} .
