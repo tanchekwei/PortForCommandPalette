@@ -2,11 +2,10 @@ name: Publish to package managers
 
 on:
   release:
-    types: 
+    types:
       - published
-
   workflow_dispatch:
-  
+
 jobs:
   publish:
     if: "!github.event.release.prerelease"
@@ -16,30 +15,54 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Publish to Package Managers
+        shell: pwsh
         run: |
+          $ErrorActionPreference = "Stop"
+
+          # Get latest release
           $response = Invoke-RestMethod -Uri https://api.github.com/repos/tanchekwei/PortForCommandPalette/releases/latest
-          
           $ver = $response.tag_name.TrimStart('v')
-          
+
           $exe = $response.assets | Where-Object { $_.name -like "*x64*" } | Select-Object -ExpandProperty browser_download_url
           $exeARM = $response.assets | Where-Object { $_.name -like "*arm64*" } | Select-Object -ExpandProperty browser_download_url
-          
-          Invoke-WebRequest -Uri $exe -OutFile .\x64.exe
-          Invoke-WebRequest -Uri $exeARM -OutFile .\arm.exe
-          $exehash = Get-FileHash -Path .\x64.exe -Algorithm SHA256 | Select-Object -ExpandProperty Hash
-          $exeARMhash = Get-FileHash -Path .\arm.exe -Algorithm SHA256 | Select-Object -ExpandProperty Hash
 
-          # Publish to Winget
-          $wingetPackage = "15722UsefulApp.PortForCommandPalette"
-          Invoke-WebRequest -Uri https://aka.ms/wingetcreate/latest -OutFile wingetcreate.exe
-          cd .\winget-pkg
-          Get-ChildItem *.* -Recurse | ForEach-Object { 
+          Invoke-WebRequest -Uri $exe -OutFile "$env:GITHUB_WORKSPACE\x64.exe"
+          Invoke-WebRequest -Uri $exeARM -OutFile "$env:GITHUB_WORKSPACE\arm.exe"
+
+          $exehash = Get-FileHash -Path "$env:GITHUB_WORKSPACE\x64.exe" -Algorithm SHA256 | Select-Object -ExpandProperty Hash
+          $exeARMhash = Get-FileHash -Path "$env:GITHUB_WORKSPACE\arm.exe" -Algorithm SHA256 | Select-Object -ExpandProperty Hash
+
+          # Download wingetcreate
+          $winget = "$env:GITHUB_WORKSPACE\wingetcreate.exe"
+          Invoke-WebRequest -Uri https://aka.ms/wingetcreate/latest -OutFile $winget
+
+          # Prepare manifests
+          $pkgPath = "$env:GITHUB_WORKSPACE\winget-pkg"
+          Set-Location $pkgPath
+
+          Get-ChildItem *.* -Recurse | ForEach-Object {
             (Get-Content $_.FullName) -replace '__VERSION__', "$ver" `
                                      -replace '__URL__', "$exe" `
                                      -replace '__SHA256__', "$exehash" `
                                      -replace '__armURL__', "$exeARM" `
-                                     -replace '__armSHA256__', "$exeARMhash" | 
-            Set-Content $_.FullName 
+                                     -replace '__armSHA256__', "$exeARMhash" |
+            Set-Content $_.FullName
           }
+
+          # --- SYNC FORK (critical fix) ---
+          echo "Syncing fork..."
+          git clone https://github.com/${{ github.actor }}/winget-pkgs.git "$env:GITHUB_WORKSPACE\winget-pkgs-fork"
+          cd "$env:GITHUB_WORKSPACE\winget-pkgs-fork"
+
+          git remote add upstream https://github.com/microsoft/winget-pkgs.git
+          git fetch upstream
+          git checkout master
+          git reset --hard upstream/master
+          git push origin master --force
+
+          # --- SUBMIT ---
           echo "Publishing to winget..."
-          ..\wingetcreate.exe submit -p "New version: $wingetPackage version $ver" -t ${{ secrets.WINGETCREATE_GITHUB }} .
+          & $winget submit `
+            -p "New version: 15722UsefulApp.PortForCommandPalette version $ver" `
+            -t ${{ secrets.WINGETCREATE_GITHUB }} `
+            $pkgPath
