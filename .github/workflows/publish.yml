@@ -15,10 +15,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Git
-        run: |
-          git clone https://github.com/tanchekwei/PortForCommandPalette.git --depth 1
-
       - name: Publish to Package Managers
         run: |
           $response = Invoke-RestMethod -Uri https://api.github.com/repos/tanchekwei/PortForCommandPalette/releases/latest
