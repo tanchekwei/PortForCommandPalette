@@ -13,12 +13,11 @@ namespace PortForCommandPalette.Pages
             new OpenInExplorerCommand(Constant.SettingsFolderPath, "Open extension settings / logs folder")
         );
 
-        public static readonly ListItem ViewSource = new(
-            new Commands.OpenUrlCommand("https://github.com/tanchekwei/PortForCommandPalette", "View source code", Icon.GitHub)
-        );
-
         public static readonly ListItem ReportBug = new(
-            new Commands.OpenUrlCommand("https://github.com/tanchekwei/PortForCommandPalette/issues/new", "Report issue", Icon.GitHub)
+            new Commands.OpenUrlCommand(
+                $"https://github.com/tanchekwei/PortForCommandPalette/issues/new?template=bug_report.yml&extension-version={Uri.EscapeDataString(Constant.AssemblyVersion)}",
+                "Report issue",
+                Icon.GitHub)
         );
 
         public static readonly ListItem ExtensionVersion = new()
